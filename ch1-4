@@ -1,0 +1,65 @@
+#subscribe: https://www.youtube.com/channel/UC1dgo0G1p2iOVD77nLQSqKQ/videos?view_as=subscriber
+#ch1: https://www.youtube.com/watch?v=tqO-4I9dkXc&t=32s
+#ch2: https://www.youtube.com/watch?v=hZpjsFY6bCM&t=92s
+#ch3: https://www.youtube.com/watch?v=8JMhYSmDvc8&t=21s
+#ch4: https://www.youtube.com/watch?v=rzl3YqR-fMo&t=306s
+
+install.packages("rio")
+install.packages("tidyverse")
+library(rio)
+library(tidyverse)
+
+llcp2017 <- import("LLCP2017.XPT")
+
+head(llcp2017)
+str(llcp2017)
+tail(llcp2017)
+glimpse(llcp2017)
+
+colnames(llcp2017)
+names(llcp2017)
+
+export(llcp2017, "llcp2017.csv")
+
+llcp2017 <- read.csv("llcp2017.csv", header = TRUE)
+
+llcp2017$GENHLTH
+llcp2017[ , 1]
+llcp2017[ ,  "X_STATE"]
+llcp2017[[1]]
+llcp2017[["X_STATE"]]
+
+class(llcp2017$GENHLTH)
+
+llcp2017$GENHLTH ~arrow~ as.factor(llcp2017$GENHLTH)
+
+?as.integer
+
+ca2017 <- filter(llcp2017, X_STATE == 6)
+
+str(ca2017)
+glimpse(ca2017)
+
+colSums(is.na(ca2017))
+
+colSums(is.na(ca2017)) == nrow(ca2017))
+
+which(colSums(is.na(ca2017)) == nrow(ca2017)))
+
+drop_var <- which(colSums(is.na(ca2017)) == nrow(ca2017)))
+
+ca2017drop_var <- ca2017[, -drop_var]
+
+count(ca2017drop_var, vars = SEX)
+
+which(ca2017drop_var$SEX == 9)
+
+sexR <- which(ca2017drop_var$SEX == 9)
+
+ca2017drop_varMF <- filter(ca2017drop_var[-sexR, ])
+
+nrow(ca2017drop_varMF)
+
+ca_girls17 <-ca2017drop_varMF
+
+export(ca_girls17, "ca_girls17.csv ")

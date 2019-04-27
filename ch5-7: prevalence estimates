@@ -1,0 +1,102 @@
+#subscribe: https://www.youtube.com/channel/UC1dgo0G1p2iOVD77nLQSqKQ/videos?view_as=subscriber
+#ch5: https://www.youtube.com/watch?v=B7ln-_JP6ug&t=29s
+#ch6: https://www.youtube.com/watch?v=LJjd5S2w-_0&t=34s
+#ch7: https://www.youtube.com/watch?v=qYUChto-jE4&t=436s
+
+library(rio)
+library(tidyverse)
+ca_girls17 <- read.csv("ca_girls17.csv", header = TRUE)
+
+keep_var <- c("X_PSU", "X_LLCPWT", "X_STSTR", "SEX", "X_RFHLTH", "X_PHYS14D", "X_MENT14D", "X_HCVU651", "CHECKUP1", "CHOLCHK1", "X_RFSMOK3", "X_RFBING5", "X_TOTINDA", "X_FRTLT1A", "X_VEGLT1A", "X_RFBMI5", "DIABETE3", "HAVARTH3", "ADDEPEV2", "BPHIGH4", "TOLDHI2", "CVDCRHD4", "CVDSTRK3")
+
+cg17_pe <- ca_girls17[ , keep_var]
+
+cg17_pe$SEX <- as.factor(recode(cg17_pe$SEX, '1' = 'M', '2' = 'F'))
+
+cg17_pe$X_RFHLTH <- as.factor(recode(cg17_pe$X_RFHLTH, '1' = '1', .default = '0', .missing = '0'))
+cg17_pe$X_PHYS14D <- as.factor(recode(cg17_pe$X_PHYS14D, '3' = '1', .default = '0', .missing = '0'))
+cg17_pe$X_MENT14D <- as.factor(recode(cg17_pe$X_MENT14D, '3' = '1', .default = '0', .missing = '0'))
+cg17_pe$X_HCVU651 <- as.factor(recode(cg17_pe$X_HCVU651, '1' = '1', .default = '0', .missing = '0'))
+
+cg17_pe$CHECKUP1 <- as.factor(recode(cg17_pe$CHECKUP1, '1' = '1',  .default = '0', .missing = '0'))
+cg17_pe$CHOLCHK1 <- as.factor(recode(cg17_pe$CHOLCHK1, '1' = '0', '2' = '1',  '3' = '1',  '4' = '1',  '5' = '1',  .default = '0', .missing = '0'))
+
+cg17_pe$X_RFSMOK3 <- as.factor(recode(cg17_pe$X_RFSMOK3, '2' = '1', .default = '0', .missing = '0'))
+cg17_pe$X_RFBING5 <- as.factor(recode(cg17_pe$X_RFBING5, '2' = '1', .default = '0', .missing = '0'))
+cg17_pe$X_TOTINDA <- as.factor(recode(cg17_pe$X_TOTINDA, '2' = '1', .default = '0', .missing = '0'))
+cg17_pe$X_FRTLT1A <- as.factor(recode(cg17_pe$X_FRTLT1A, '2' = '1', .default = '0', .missing = '0'))
+cg17_pe$X_VEGLT1A <- as.factor(recode(cg17_pe$X_VEGLT1A, '2' = '1', .default = '0', .missing = '0'))
+
+cg17_pe$X_RFBMI5 <- as.factor(recode(cg17_pe$X_RFBMI5, '2' = '1', .default = '0', .missing = '0'))
+cg17_pe$DIABETE3 <- as.factor(recode(cg17_pe$DIABETE3, '1' = '1', .default = '0', .missing = '0'))
+cg17_pe$HAVARTH3 <- as.factor(recode(cg17_pe$HAVARTH3, '1' = '1', .default = '0', .missing = '0'))
+cg17_pe$ADDEPEV2 <- as.factor(recode(cg17_pe$ADDEPEV2, '1' = '1', .default = '0', .missing = '0'))
+cg17_pe$BPHIGH4 <- as.factor(recode(cg17_pe$BPHIGH4, '1' = '1', .default = '0', .missing = '0'))
+cg17_pe$TOLDHI2 <- as.factor(recode(cg17_pe$TOLDHI2, '1' = '1', .default = '0', .missing = '0'))
+cg17_pe$CVDCRHD4 <- as.factor(recode(cg17_pe$CVDCRHD4, '1' = '1', .default = '0', .missing = '0'))
+cg17_pe$CVDSTRK3 <- as.factor(recode(cg17_pe$CVDSTRK3, '1' = '1', .default = '0', .missing = '0'))
+
+export(cg17_pe, "cg17_pe.csv")
+x <- read.csv("cg17_pe.csv", header = TRUE)
+
+ 
+install.packages("survey")
+library(survey)
+cg17_pe_dsgn <- svydesign(id=~1, strata = ~X_STSTR, weights = ~X_LLCPWT, data = cg17_pe)
+svymean(~factor(X_RFSMOK3), cg17_pe_dsgn, na.rm = TRUE)
+
+install.packages("srvyr")
+library(srvyr)
+cg17_pe_design <- as_survey_design(.data = cg17_pe, ids = "X_PSU", strata = "X_STSTR", weights = "X_LLCPWT")
+cg17_pe_design <- cg17_pe %>% as_survey_design(ids = "X_PSU", strata = "X_STSTR", weights = "X_LLCPWT")
+
+cg17_pe_design %>% group_by(SEX, X_RFSMOK3) %>% summarize(proportion = survey_mean(vartype=c("se", "ci")))
+
+cg17_pe_design %>% group_by(SEX, X_RFSMOK3) %>% summarize(proportion = survey_mean(vartype=c("se", "ci"))) %>% filter(X_RFSMOK3 == 1)
+cg17_pe %>% count(vars = X_RFSMOK3, by = SEX) %>% filter(vars == 1)
+
+cg17_pe_design %>% group_by(SEX, X_RFSMOK3) %>% summarize(proportion = survey_mean(vartype=c("se", "ci"))) %>% filter(X_RFSMOK3 == 1) %>% cbind(cg17_pe %>% count(vars = X_RFSMOK3, by = SEX) %>% filter(vars == 1))
+
+pe <- function(y) {
+y <- enquo(y)
+cg17_pe_design %>% group_by(SEX, !!y) %>% summarize(proportion = survey_mean(vartype=c("se", "ci"))) %>% filter(!!y == 1) %>%
+cbind(
+cg17_pe %>% count(vars = !!y, by = SEX) %>% filter(vars == 1)
+)
+}
+
+
+a <- pe(X_RFHLTH)
+b <- pe(X_PHYS14D)
+c <- pe(X_MENT14D)
+d <- pe(X_HCVU651)
+e <- pe(CHECKUP1)
+f <- pe(CHOLCHK1)
+g <- pe(X_RFSMOK3)
+h <- pe(X_RFBING5)
+i <- pe(X_TOTINDA)
+j <- pe(X_FRTLT1A)
+k<- pe(X_VEGLT1A)
+l <- pe(X_RFBMI5)
+m <- pe(DIABETE3)
+n <- pe(HAVARTH3)
+o <- pe(ADDEPEV2)
+p <- pe(BPHIGH4)
+q <- pe(TOLDHI2)
+r <- pe(CVDCRHD4)
+s <- pe(CVDSTRK3)
+
+pe_table <- bind_rows(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s)
+
+health_variable <- c("X_RFHLTH", "X_RFHLTH", "X_PHYS14D", "X_PHYS14D", "X_MENT14D", "X_MENT14D", "X_HCVU651", "X_HCVU651", "CHECKUP1", "CHECKUP1", "CHOLCHK1", "CHOLCHK1", "X_RFSMOK3", "X_RFSMOK3", "X_RFBING5", "X_RFBING5", "X_TOTINDA", "X_TOTINDA", "X_FRTLT1A", "X_FRTLT1A", "X_VEGLT1A", "X_VEGLT1A", "X_RFMBI5", "X_RFMBI5", "DIABETE3", "DIABETE3", "HAVARTH3", "HAVARTH3", "ADDEPEV2", "ADDEPEV2", "BPHIGH4", "BPHIGH4", "TOLDHI2", "TOLDHI2", "CVDCRHD4", "CVDCRHD4", "CVDSTRK3", "CVDSTRK3")
+pe_table$health_variable <- health_variable
+pe_table
+
+pe_table_2 <- subset(pe_table, select=c(health_variable, SEX, n, proportion:proportion_upp))
+pe_table_2
+
+ggplot(data=pe_table_2, aes(x=health_variable, y=proportion, fill=SEX)) + geom_bar(stat="identity", position=position_dodge())
+
+ggplot(data=pe_table_2, aes(x=health_variable, y=proportion, fill=SEX)) + geom_bar(stat="identity", position=position_dodge()) + geom_errorbar(aes(ymin=proportion_low, ymax=proportion_upp), width = .2, position = position_dodge(.9))
+
+ggplot(data=pe_table_2, aes(x=health_variable, y=proportion, fill=SEX)) + geom_bar(stat="identity", position=position_dodge()) + geom_errorbar(aes(ymin=proportion_low, ymax=proportion_upp), width = .2, position = position_dodge(.9)) + coord_flip()

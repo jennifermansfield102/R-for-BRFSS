@@ -1,0 +1,94 @@
+#subscribe: https://www.youtube.com/channel/UC1dgo0G1p2iOVD77nLQSqKQ?view_as=subscriber
+#ch8: https://www.youtube.com/watch?v=Bbkl0libr_8&t=2s
+#ch9: https://www.youtube.com/watch?v=CoJRZWOJefM&t=5s
+ch10: https://www.youtube.com/watch?v=Iorn5w7O2sw&t=1s
+
+library(tidyverse)
+cg17_dm <- read.csv("ca_girls17.csv", header = TRUE)
+cg17_dm <- cg17_dm %>% select(SEX, DEAF, BPHIGH4, DIABETE3, CHCKIDNY, ASTHMA3, HAVARTH3, CVDCRHD4, CVDINFR4, CVDSTRK3, CHCCOPD1, CHCOCNCR, BLIND, X_RFBMI5, X_RFSMOK3)
+
+glimpse(cg17_dm)
+
+cg17_dm$SEX <- as.factor(recode(cg17_dm$SEX, '1' = 'M', '2' = 'F'))
+
+cg17_dm$DEAF <- as.factor(recode(cg17_dm$DEAF, '1' = '1', .default = '0', .missing = '0'))
+cg17_dm$BPHIGH4 <- as.factor(recode(cg17_dm$BPHIGH4, '1' = '1', .default = '0', .missing = '0'))
+cg17_dm$DIABETE3 <- as.factor(recode(cg17_dm$DIABETE3, '1' = '1', .default = '0', .missing = '0'))
+cg17_dm$CHCKIDNY <- as.factor(recode(cg17_dm$CHCKIDNY, '1' = '1', .default = '0', .missing = '0'))
+cg17_dm$ASTHMA3 <- as.factor(recode(cg17_dm$ASTHMA3, '1' = '1', .default = '0', .missing = '0'))
+cg17_dm$HAVARTH3 <- as.factor(recode(cg17_dm$HAVARTH3, '1' = '1', .default = '0', .missing = '0'))
+cg17_dm$CVDCRHD4 <- as.factor(recode(cg17_dm$CVDCRHD4, '1' = '1', .default = '0', .missing = '0'))
+cg17_dm$CVDINFR4 <- as.factor(recode(cg17_dm$CVDINFR4, '1' = '1', .default = '0', .missing = '0'))
+cg17_dm$CVDSTRK3 <- as.factor(recode(cg17_dm$CVDSTRK3, '1' = '1', .default = '0', .missing = '0'))
+cg17_dm$CHCCOPD1 <- as.factor(recode(cg17_dm$CHCCOPD1, '1' = '1', .default = '0', .missing = '0'))
+cg17_dm$CHCOCNCR <- as.factor(recode(cg17_dm$CHCOCNCR, '1' = '1', .default = '0', .missing = '0'))
+cg17_dm$BLIND <- as.factor(recode(cg17_dm$BLIND, '1' = '1', .default = '0', .missing = '0'))
+
+cg17_dm$X_RFBMI5 <- as.factor(recode(cg17_dm$X_RFBMI5, '2' = '1', .default = '0', .missing = '0'))
+cg17_dm$X_RFSMOK3 <- as.factor(recode(cg17_dm$X_RFSMOK3, '2' = '1', .default = '0', .missing = '0'))
+
+library(arules)
+a <- apriori(cg17_dm)
+inspect(a)
+a1 <- apriori(cg17_dm, parameter = list(confidence = 0.5, minlen = 2, maxlen = 16, maxtime = 0, target = "rules"))
+inspect(a1)
+
+mba <- apriori(cg17_dm, parameter = list(confidence = 0.5, minlen = 2, maxlen = 15, maxtime = 0, target = "rules"), appearance = list(none = c("DEAF=0", "BPHIGH4=0", "DIABETE3=0", "CHCKIDNY=0", "ASTHMA3=0", "HAVARTH3=0", "CVDCRHD4=0", "CVDINFR4=0", "CVDSTRK3=0", "CHCCOPD1=0", "CHCOCNCR=0", "BLIND=0", "X_RFBMI5=0", "X_RFSMOK3=0")))
+
+mba <- apriori(cg17_dm, parameter = list(confidence = 0.5, minlen = 2, maxlen = 15, maxtime = 0, target = "rules"), appearance = list(none = c("DEAF=0", "BPHIGH4=0", "DIABETE3=0", "CHCKIDNY=0", "ASTHMA3=0", "HAVARTH3=0", "CVDCRHD4=0", "CVDINFR4=0", "CVDSTRK3=0", "CHCCOPD1=0", "CHCOCNCR=0", "BLIND=0", "X_RFBMI5=0", "X_RFSMOK3=0")), control=list(memopt=TRUE, load=FALSE))
+inspect(mba)
+
+mba_s <- apriori(cg17_dm, parameter = list(support=0.01, confidence = 0.5, minlen = 2, maxlen = 15, maxtime = 0, target = "rules"), appearance = list(none = c("DEAF=0", "BPHIGH4=0", "DIABETE3=0", "CHCKIDNY=0", "ASTHMA3=0", "HAVARTH3=0", "CVDCRHD4=0", "CVDINFR4=0", "CVDSTRK3=0", "CHCCOPD1=0", "CHCOCNCR=0", "BLIND=0", "X_RFBMI5=0", "X_RFSMOK3=0")), control=list(memopt=TRUE, load=FALSE))
+inspect(mba_s)
+
+mba_mr <- apriori(cg17_dm, parameter = list(support=0.01, confidence = 0.5, minlen = 2, maxlen = 15, maxtime = 0, target = "rules"), appearance = list(rhs = "SEX=M", none = c("DEAF=0", "BPHIGH4=0", "DIABETE3=0", "CHCKIDNY=0", "ASTHMA3=0", "HAVARTH3=0", "CVDCRHD4=0", "CVDINFR4=0", "CVDSTRK3=0", "CHCCOPD1=0", "CHCOCNCR=0", "BLIND=0", "X_RFBMI5=0", "X_RFSMOK3=0")), control=list(memopt=TRUE, load=FALSE))
+inspect(mba_mr)
+
+mba_ml <- apriori(cg17_dm, parameter = list(support=0.01, confidence = 0.5, minlen = 2, maxlen = 15, maxtime = 0, target = "rules"), appearance = list(lhs = "SEX=M", none = c("DEAF=0", "BPHIGH4=0", "DIABETE3=0", "CHCKIDNY=0", "ASTHMA3=0", "HAVARTH3=0", "CVDCRHD4=0", "CVDINFR4=0", "CVDSTRK3=0", "CHCCOPD1=0", "CHCOCNCR=0", "BLIND=0", "X_RFBMI5=0", "X_RFSMOK3=0")), control=list(memopt=TRUE, load=FALSE))
+inspect(mba_ml)
+
+mba_fr <- apriori(cg17_dm, parameter = list(support=0.01, confidence = 0.5, minlen = 2, maxlen = 15, maxtime = 0, target = "rules"), appearance = list(rhs = "SEX=F", none = c("DEAF=0", "BPHIGH4=0", "DIABETE3=0", "CHCKIDNY=0", "ASTHMA3=0", "HAVARTH3=0", "CVDCRHD4=0", "CVDINFR4=0", "CVDSTRK3=0", "CHCCOPD1=0", "CHCOCNCR=0", "BLIND=0", "X_RFBMI5=0", "X_RFSMOK3=0")), control=list(memopt=TRUE, load=FALSE))
+inspect(mba_fr)
+
+mba_fl <- apriori(cg17_dm, parameter = list(support=0.01, confidence = 0.5, minlen = 2, maxlen = 16, maxtime = 0, target = "rules"), appearance = list(lhs = "SEX=F", none = c("DEAF=0", "BPHIGH4=0", "DIABETE3=0", "CHCKIDNY=0", "ASTHMA3=0", "HAVARTH3=0", "CVDCRHD4=0", "CVDINFR4=0", "CVDSTRK3=0", "CHCCOPD1=0", "CHCOCNCR=0", "BLIND=0", "X_RFBMI5=0", "X_RFSMOK3=0")), control=list(memopt=TRUE, load=FALSE))
+inspect(mba_fl)
+
+mba_mrx <- apriori(cg17_dm, parameter = list(support=0.001, confidence = 0.5, minlen = 2, maxlen = 15, maxtime = 0, target = "rules"), appearance = list(rhs = "SEX=M", none = c("DEAF=0", "BPHIGH4=0", "DIABETE3=0", "CHCKIDNY=0", "ASTHMA3=0", "HAVARTH3=0", "CVDCRHD4=0", "CVDINFR4=0", "CVDSTRK3=0", "CHCCOPD1=0", "CHCOCNCR=0", "BLIND=0", "X_RFBMI5=0", "X_RFSMOK3=0")), control=list(memopt=TRUE, load=FALSE))
+inspect(mba_mrx)
+
+mba_mlx <- apriori(cg17_dm, parameter = list(support=0.001, confidence = 0.5, minlen = 2, maxlen = 15, maxtime = 0, target = "rules"), appearance = list(lhs = "SEX=M", none = c("DEAF=0", "BPHIGH4=0", "DIABETE3=0", "CHCKIDNY=0", "ASTHMA3=0", "HAVARTH3=0", "CVDCRHD4=0", "CVDINFR4=0", "CVDSTRK3=0", "CHCCOPD1=0", "CHCOCNCR=0", "BLIND=0", "X_RFBMI5=0", "X_RFSMOK3=0")), control=list(memopt=TRUE, load=FALSE))
+inspect(mba_mlx)
+
+mba_frx <- apriori(cg17_dm, parameter = list(support=0.001, confidence = 0.5, minlen = 2, maxlen = 15, maxtime = 0, target = "rules"), appearance = list(rhs = "SEX=F", none = c("DEAF=0", "BPHIGH4=0", "DIABETE3=0", "CHCKIDNY=0", "ASTHMA3=0", "HAVARTH3=0", "CVDCRHD4=0", "CVDINFR4=0", "CVDSTRK3=0", "CHCCOPD1=0", "CHCOCNCR=0", "BLIND=0", "X_RFBMI5=0", "X_RFSMOK3=0")), control=list(memopt=TRUE, load=FALSE))
+inspect(mba_frx)
+
+mba_flx <- apriori(cg17_dm, parameter = list(support=0.001, confidence = 0.5, minlen = 2, maxlen = 15, maxtime = 0, target = "rules"), appearance = list(lhs = "SEX=F", none = c("DEAF=0", "BPHIGH4=0", "DIABETE3=0", "CHCKIDNY=0", "ASTHMA3=0", "HAVARTH3=0", "CVDCRHD4=0", "CVDINFR4=0", "CVDSTRK3=0", "CHCCOPD1=0", "CHCOCNCR=0", "BLIND=0", "X_RFBMI5=0", "X_RFSMOK3=0")), control=list(memopt=TRUE, load=FALSE))
+inspect(mba_flx)
+
+cg17_dm$comorbid <- rowSums(cg17_dm[,2:15])
+cg17_dm1 <- data.frame(sapply(cg17_dm, as.numeric))
+ 
+library(rio)
+export(cg17_dm, "cg17_dm.csv")
+cg17_dm <- read.csv("cg17_dm.csv", header=TRUE)
+glimpse(cg17_dm)
+cg17_dm$comorbid <- rowSums(cg17_dm[,2:15])
+
+f <- cg17_dm %>% filter(SEX=="F")
+mean(f$comorbid)
+
+m <- cg17_dm %>% filter(SEX=="M")
+mean(m$comorbid)
+
+median(f$comorbid)
+median(m$comorbid)
+
+max(m$comorbid)
+which(m$comorbid==max(m$comorbid))
+max(f$comorbid)
+which(f$comorbid==max(f$comorbid))
+
+hist(f$comorbid)
+hist(m$comorbid)
+count(f)
+count(m)

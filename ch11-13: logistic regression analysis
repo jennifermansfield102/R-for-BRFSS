@@ -1,0 +1,172 @@
+#subscribe: https://www.youtube.com/channel/UC1dgo0G1p2iOVD77nLQSqKQ/videos?view_as=subscriber
+#ch11: https://www.youtube.com/watch?v=ufyPXd-fmAk
+#ch12: https://www.youtube.com/watch?v=wGNCqnx9AN4&t=1108s
+#ch13: https://www.youtube.com/watch?v=wQLO2XtLKlw&t=20s
+
+library(tidyverse)
+ca_girls17 <- read.csv("ca_girls17.csv", header = TRUE)
+cg17_lr <- ca_girls17 %>% select(X_RFHLTH, X_TOTINDA, X_AGEG5YR, X_RFSMOK3, X_HCVU651, SEX, INCOME2, EDUCA, CVDCRHD4, HAVARTH3, ASTHMA3, DIABETE3, X_RFBMI5, X_LLCPWT, X_STSTR, X_PSU)
+
+glimpse(cg17_lr)
+
+cg17_lr <- cg17_lr %>% filter(X_AGEG5YR <= 9)
+
+glimpse(cg17_lr)
+
+cg17_lr$X_RFHLTH <- as.factor(recode(cg17_lr$X_RFHLTH, '1' = 'ref', .default = 'com', .missing = 'com'))
+cg17_lr$X_TOTINDA <- as.factor(recode(cg17_lr$X_TOTINDA, '1' = 'ref', .default = 'com', .missing = 'com'))
+cg17_lr$X_RFSMOK3 <- as.factor(recode(cg17_lr$X_RFSMOK3, '1' = 'ref', .default = 'com', .missing = 'com'))
+cg17_lr$X_HCVU651 <- as.factor(recode(cg17_lr$X_HCVU651, '1' = 'ref', .default = 'com', .missing = 'com'))
+cg17_lr$SEX <- as.factor(recode(cg17_lr$SEX, '1' = 'ref', .default = 'com', .missing = 'com'))
+cg17_lr$INCOME2 <- as.factor(recode(cg17_lr$INCOME2, '8' = 'ref', .default = 'com', .missing = 'com'))
+cg17_lr$EDUCA <- as.factor(recode(cg17_lr$EDUCA, '6' = 'ref', .default = 'com', .missing = 'com'))
+cg17_lr$CVDCRHD4 <- as.factor(recode(cg17_lr$CVDCRHD4, '2' = 'ref', .default = 'com', .missing = 'com'))
+cg17_lr$HAVARTH3 <- as.factor(recode(cg17_lr$HAVARTH3, '2' = 'ref', .default = 'com', .missing = 'com'))
+cg17_lr$ASTHMA3 <- as.factor(recode(cg17_lr$ASTHMA3, '2' = 'ref', .default = 'com', .missing = 'com'))
+cg17_lr$DIABETE3 <- as.factor(recode(cg17_lr$DIABETE3, '3' = 'ref', .default = 'com', .missing = 'com'))
+cg17_lr$X_RFBMI5 <- as.factor(recode(cg17_lr$X_RFBMI5, '1' = 'ref', .default = 'com', .missing = 'com'))
+
+glimpse(cg17_lr)
+
+cg17_lr %>% count(X_AGEG5YR, vars = X_RFHLTH)
+ggplot(cg17_lr, aes(x=X_AGEG5YR, fill = X_RFHLTH)) + geom_histogram(position = "dodge", bins = 30)
+cg17_lr$X_AGE <- as.factor(recode(cg17_lr$X_AGEG5YR, '1' = 'ref', .default = 'com', .missing = 'com'))
+
+glimpse(cg17_lr)
+
+library(survey)
+cg17_lr_dsgn <- svydesign(id=~1, strata = ~X_STSTR, weights = ~X_LLCPWT, data = cg17_lr)
+
+svytable(~X_RFHLTH + X_TOTINDA, cg17_lr_dsgn)
+svychisq(~X_RFHLTH + X_TOTINDA, cg17_lr_dsgn)
+summary(svytable(~X_RFHLTH + X_TOTINDA, cg17_lr_dsgn))
+
+svyglm(X_RFHLTH~X_TOTINDA, family = quasibinomial, design = cg17_lr_dsgn)
+summary(svyglm(X_RFHLTH~X_TOTINDA, family = quasibinomial, design = cg17_lr_dsgn))
+
+or <- svyglm(X_RFHLTH~X_TOTINDA, family = quasibinomial, design = cg17_lr_dsgn)
+summary(or)
+confint(or)
+exp(coef(or))
+exp(cbind(OR = coef(or), confint(or)))
+or_table <- exp(cbind(OR = coef(or), confint(or)))[2, ]
+or_table$hv <- c("X_TOTINDA")
+unlist(or_table)
+as.data.frame(or_table)
+
+or <- svyglm(X_RFHLTH~ X_TOTINDA, family = quasibinomial, design = cg17_lr_dsgn)
+or_fun <- function(y) {
+or_table <- exp(cbind(OR = coef(or), confint(or)))[2, ]
+or_table$hv <- c(y)
+unlist(or_table)
+as.data.frame(or_table)
+}
+a <- or_fun("X_TOTINDA")
+
+or <- svyglm(X_RFHLTH~ X_AGEG5YR, family = quasibinomial, design = cg17_lr_dsgn)
+b <- or_fun("X_AGEG5YR")
+
+or <- svyglm(X_RFHLTH~ X_RFSMOK3, family = quasibinomial, design = cg17_lr_dsgn)
+c <- or_fun("X_RFSMOK3")
+
+or <- svyglm(X_RFHLTH~ X_HCVU651, family = quasibinomial, design = cg17_lr_dsgn)
+d <- or_fun("X_HCVU651")
+
+or <- svyglm(X_RFHLTH~ SEX, family = quasibinomial, design = cg17_lr_dsgn)
+e <- or_fun("SEX")
+
+or <- svyglm(X_RFHLTH~ INCOME2, family = quasibinomial, design = cg17_lr_dsgn)
+f <- or_fun("INCOME2")
+
+or <- svyglm(X_RFHLTH~ EDUCA, family = quasibinomial, design = cg17_lr_dsgn)
+g <- or_fun("EDUCA")
+
+or <- svyglm(X_RFHLTH~ CVDCRHD4, family = quasibinomial, design = cg17_lr_dsgn)
+h <- or_fun("CVDCRHD4")
+
+or <- svyglm(X_RFHLTH~ HAVARTH3, family = quasibinomial, design = cg17_lr_dsgn)
+i <- or_fun("HAVARTH3")
+
+or <- svyglm(X_RFHLTH~ ASTHMA3, family = quasibinomial, design = cg17_lr_dsgn)
+j <- or_fun("ASTHMA3")
+
+or <- svyglm(X_RFHLTH~ DIABETE3, family = quasibinomial, design = cg17_lr_dsgn)
+k <- or_fun("DIABETE3")
+
+or <- svyglm(X_RFHLTH~ X_RFBMI5, family = quasibinomial, design = cg17_lr_dsgn)
+l <- or_fun("X_RFBMI5")
+
+or <- svyglm(X_RFHLTH~ X_AGE, family = quasibinomial, design = cg17_lr_dsgn)
+m <- or_fun("X_AGE")
+
+all_or <- bind_rows(a, b, c, d, e, f, g, h, i, j, k, l, m)
+all_or <- as.data.frame(all_or)
+
+alr <- svyglm(X_RFHLTH ~ X_TOTINDA + X_AGEG5YR + X_RFSMOK3 + X_HCVU651 + SEX + INCOME2 + EDUCA + CVDCRHD4 + HAVARTH3 + ASTHMA3 + DIABETE3 + X_RFBMI5 + X_AGE, family = quasibinomial, design = cg17_lr_dsgn)
+summary(alr)
+
+confint(alr)
+exp(coef(alr))
+exp(cbind(AOR = coef(alr), confint(alr)))
+exp(cbind(AOR = coef(alr), confint(alr)))[-1, ]
+adj_or <- exp(cbind(AOR = coef(alr), confint(alr)))[-1, ]
+adj_or <- as.data.frame(adj_or)
+
+bind_cols(all_or, adj_or)
+
+table1 <- bind_cols(all_or, adj_or)
+colnames(table1)
+table1 <- table1 %>% select("hv", "OR", "X2.5..", "X97.5..", "AOR", "2.5 %", "97.5 %")
+table1$orll <- table1$X2.5..
+table1$orul <- table1$X97.5..
+table1$aorll <- table1$"2.5 %"
+table1$aorul <- table1$"97.5 %"
+table1 <- table1 %>% select(hv, OR, orll, orul, AOR, aorll, aorul) 
+
+ggplot(table1, aes(x=hv, y = OR)) + geom_bar(stat = "identity", position = "dodge")
+ggplot(table1, aes(x=hv, y = OR)) + geom_bar(stat = "identity", position = "dodge") + geom_abline(slope = 0, intercept = 1)
+ggplot(table1, aes(x=hv, y = OR)) + geom_bar(stat = "identity", position = "dodge") + geom_abline(slope = 0, intercept = 1, color = "red")
+ggplot(table1, aes(x=hv, y = OR)) + geom_bar(stat = "identity", position = "dodge") + geom_abline(slope = 0, intercept = 1, color = "red", size = 2) + geom_errorbar(aes(ymin=orll, ymax=orul), width = .2, position = position_dodge(.9))
+
+ggplot(table1, aes(x=hv, y = AOR)) + geom_bar(stat = "identity", position = "dodge") + geom_abline(slope = 0, intercept = 1, color = "red", size = 2) + geom_errorbar(aes(ymin=aorll, ymax=aorul), width = .2, position = position_dodge(.9))
+
+ORtable <- table1 %>% select(hv, OR, orll, orul)
+ORtable$type <- c("OR")
+ORtable$stat <- ORtable$OR
+ORtable$ll <- ORtable$orll
+ORtable$ul <- ORtable$orul
+ORtable <- ORtable %>% select(hv, stat, type, ll, ul)
+
+AORtable <- table1 %>% select(hv, AOR, aorll, aorul)
+AORtable$type <- c("AOR")
+AORtable$stat <- AORtable$AOR
+AORtable$ll <- AORtable$aorll
+AORtable$ul <- AORtable$aorul
+AORtable <- AORtable %>% select(hv, stat, type, ll, ul)
+
+table2 <- rbind(ORtable, AORtable)
+
+figureoraor <- ggplot(table2, aes(x=hv, y = stat, fill = type)) + geom_bar(stat = "identity", position = "dodge") + geom_abline(slope = 0, intercept = 1, color = "red", size = 2) + geom_errorbar(aes(ymin=ll, ymax=ul), width = .2, position = position_dodge(.9))
+print(figureoraor + ggtitle("OR & AOR"))
+
+aa <- cg17_lr %>% count(X_RFHLTH, vars = X_TOTINDA)
+#bb <- cg17_lr %>% count(X_RFHLTH, vars = X_AGEG5YR)
+cc <- cg17_lr %>% count(X_RFHLTH, vars = X_RFSMOK3)
+dd <- cg17_lr %>% count(X_RFHLTH, vars = X_HCVU651)
+ee <- cg17_lr %>% count(X_RFHLTH, vars = SEX)
+ff <- cg17_lr %>% count(X_RFHLTH, vars = INCOME2)
+gg <- cg17_lr %>% count(X_RFHLTH, vars = EDUCA)
+hh <- cg17_lr %>% count(X_RFHLTH, vars = CVDCRHD4)
+ii <- cg17_lr %>% count(X_RFHLTH, vars = HAVARTH3)
+jj <- cg17_lr %>% count(X_RFHLTH, vars = ASTHMA3)
+kk <- cg17_lr %>% count(X_RFHLTH, vars = DIABETE3)
+ll <- cg17_lr %>% count(X_RFHLTH, vars = X_RFBMI5)
+mm <- cg17_lr %>% count(X_RFHLTH, vars = X_AGE)
+
+bind_rows(aa, cc, dd, ee, ff, gg, hh, ii, jj, kk, ll, mm)
+counts <- bind_rows(aa, cc, dd, ee, ff, gg, hh, ii, jj, kk, ll, mm)
+hv <- c("X_TOTINDA", "X_TOTINDA", "X_TOTINDA", "X_TOTINDA", "X_RFSMOK3", "X_RFSMOK3", "X_RFSMOK3", "X_RFSMOK3", "X_HCVU651", "X_HCVU651","X_HCVU651", "X_HCVU651", "SEX", "SEX", "SEX", "SEX", "INCOME2", "INCOME2", "INCOME2", "INCOME2", "EDUCA", "EDUCA", "EDUCA", "EDUCA", "CVDCRHD4", "CVDCRHD4", "CVDCRHD4", "CVDCRHD4", "HAVARTH3", "HAVARTH3", "HAVARTH3", "HAVARTH3", "ASTHMA3", "ASTHMA3", "ASTHMA3", "ASTHMA3", "DIABETE3", "DIABETE3", "DIABETE3", "DIABETE3", "X_RFBMI5", "X_RFBMI5", "X_RFBMI5", "X_RFBMI5","X_AGE",  "X_AGE",  "X_AGE",  "X_AGE")
+counts$hv <- hv
+counts2 <- subset(counts, select=c(X_RFHLTH, hv, vars, n))
+figurecounts <- ggplot(counts2, aes(x=hv, y=n, col = vars, fill = X_RFHLTH)) + geom_bar(stat = "identity", position = position_dodge(0.8), alpha = 0.5, size = 2)
+print(figurecounts + ggtitle("counts"))

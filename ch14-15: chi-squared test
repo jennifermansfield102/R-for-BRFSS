@@ -1,0 +1,128 @@
+#subscribe: https://www.youtube.com/channel/UC1dgo0G1p2iOVD77nLQSqKQ/videos?view_as=subscriber
+#ch14: https://www.youtube.com/watch?v=erVInkabv0M
+#ch15: https://studio.youtube.com/video/k4RD7OhqkpM/edit
+
+library(tidyverse)
+library(survey)
+library(srvyr)
+
+ca_girls17 <- read.csv("ca_girls17.csv", header = TRUE) 
+cg17_chisq <- ca_girls17 %>% select(X_PSU, X_STSTR, X_LLCPWT, SEX, LMTJOIN3, X_RFBMI5, ADDEPEV2, CHCCOPD1, X_PHYS14D, ARTHSOCL, X_MENT14D, ASTHMA3, DEAF, BLIND, DECIDE, DIFFWALK, DIFFDRES, DIFFALON)
+
+cg17_chisq$SEX <- as.factor(recode(cg17_chisq$SEX, "1" = "M", "2" = "F", .default = "0", .missing = "0"))
+cg17_chisq$LMTJOIN3 <- as.factor(recode(cg17_chisq$LMTJOIN3, "1" = "1", .default = "0", .missing = "0"))
+cg17_chisq$X_RFBMI5 <- as.factor(recode(cg17_chisq$X_RFBMI5, "2" = "1", .default = "0", .missing = "0"))
+cg17_chisq$ADDEPEV2 <- as.factor(recode(cg17_chisq$ADDEPEV2, "1" = "1", .default = "0", .missing = "0")) 
+cg17_chisq$CHCCOPD1 <- as.factor(recode(cg17_chisq$CHCCOPD1, "1" = "1", .default = "0", .missing = "0"))
+cg17_chisq$X_PHYS14D <- as.factor(recode(cg17_chisq$X_PHYS14D, "3" = "1", .default = "0", .missing = "0"))
+cg17_chisq$ARTHSOCL <- as.factor(recode(cg17_chisq$ARTHSOCL, "1" = "1", .default = "0", .missing = "0"))
+cg17_chisq$X_MENT14D <- as.factor(recode(cg17_chisq$X_MENT14D, "3" = "1", .default = "0", .missing = "0"))
+cg17_chisq$ASTHMA3 <- as.factor(recode(cg17_chisq$ASTHMA3, "1" = "1", .default = "0", .missing = "0"))
+cg17_chisq$DEAF <- as.numeric(recode(cg17_chisq$DEAF, "1" = "1", .default = "0", .missing = "0"))
+cg17_chisq$BLIND <- as.numeric(recode(cg17_chisq$BLIND, "1" = "1", .default = "0", .missing = "0"))
+cg17_chisq$DECIDE <- as.numeric(recode(cg17_chisq$DECIDE, "1" = "1", .default = "0", .missing = "0"))
+cg17_chisq$DIFFWALK <- as.numeric(recode(cg17_chisq$DIFFWALK, "1" = "1", .default = "0", .missing = "0"))
+cg17_chisq$DIFFDRES <- as.numeric(recode(cg17_chisq$DIFFDRES, "1" = "1", .default = "0", .missing = "0"))
+cg17_chisq$DIFFALON <- as.numeric(recode(cg17_chisq$DIFFALON, "1" = "1", .default = "0", .missing = "0"))
+
+cg17_chisq$dis_sum <- rowSums(cg17_chisq[ , 13:18])
+cg17_chisq$dis <- as.factor(recode(cg17_chisq$dis_sum, "0" = "0", .default = "1", .missing = "0"))
+
+cg17_chisq$male <- recode(cg17_chisq$SEX, "M" = "1", .default = "0")
+cg17_chisq$female <- recode(cg17_chisq$SEX, "F" = "1", .default = "0")
+
+cg17_chisq_dsgn <- svydesign(id=~1, strata = ~X_STSTR, weights = ~X_LLCPWT, data = cg17_chisq)
+cg17_chisq_design <- as_survey_design(.data = cg17_chisq, ids = "X_PSU", strata = "X_STSTR", weights = "X_LLCPWT")
+
+svytable(~dis + LMTJOIN3, cg17_chisq_dsgn)
+svychisq(~dis + LMTJOIN3, cg17_chisq_dsgn)
+summary(svytable(~dis + LMTJOIN3, cg17_chisq_dsgn))
+
+cg17_chisq_design %>% group_by(LMTJOIN3) %>% summarize(proportion = survey_mean(vartype="se")) %>% filter(LMTJOIN3 == 1)
+cg17_chisq_design %>% group_by(LMTJOIN3, dis) %>% summarize(proportion = survey_mean(vartype="se")) %>% filter(LMTJOIN3 == 1)
+ 
+pop <- cg17_chisq_design %>% group_by(LMTJOIN3) %>% summarize(proportion = survey_mean(vartype="se")) %>% filter(LMTJOIN3 == 1)
+bydis <- cg17_chisq_design %>% group_by(LMTJOIN3, dis) %>% summarize(proportion = survey_mean(vartype="se")) %>% filter(LMTJOIN3 == 1)
+disgroup <- bydis %>% filter(dis == 1)
+nodisgroup <- bydis %>% filter(dis == 0)
+p1 <- cbind(pop, disgroup, nodisgroup)
+p1 <- p1[ , -c(1, 4, 8)]
+
+a <- svychisq(~dis + LMTJOIN3, cg17_chisq_design)
+a <- unlist(a)
+b <- as.data.frame(a)
+fstat <- b[1, ] 
+fstat <- as.data.frame(fstat)
+pvalue <- b[4, ]
+pvalue <- as.data.frame(pvalue)
+p2 <- cbind(fstat, pvalue)
+
+cbind(p1, p2)
+
+cst_1 <- function(y) {
+y <- enquo(y)
+pop <- cg17_chisq_design %>% group_by(!!y) %>% summarize(proportion = survey_mean(vartype="se")) %>% filter(!!y == 1)
+bydis <- cg17_chisq_design %>% group_by(!!y, dis) %>% summarize(proportion = survey_mean(vartype="se")) %>% filter(!!y == 1)
+disgroup <- bydis %>% filter(dis == 1)
+nodisgroup <- bydis %>% filter(dis == 0)
+p1 <- cbind(pop, disgroup, nodisgroup)
+p1[ , -c(1, 4, 8)]
+}
+cst_1(LMTJOIN3)
+
+cst_4 <- function(a) {
+a <- unlist(a)
+b <- as.data.frame(a)
+fstat <- b[1, ] 
+fstat <- as.data.frame(fstat)
+pvalue <- b[4, ]
+pvalue <- as.data.frame(pvalue)
+cbind(fstat, pvalue)
+}
+cst_4(svychisq(~dis + LMTJOIN3, cg17_chisq_design))
+
+r1p1 <- cst_1(LMTJOIN3)
+r1p2 <- cst_4(svychisq(~dis + LMTJOIN3, cg17_chisq_design))
+r1 <- cbind(r1p1, r1p2)
+
+r2p1 <- cst_1(X_RFBMI5)
+r2p2 <- cst_4(svychisq(~dis + X_RFBMI5, cg17_chisq_design))
+r2 <- cbind(r2p1, r2p2)
+
+r3p1 <- cst_1(ADDEPEV2)
+r3p2 <- cst_4(svychisq(~dis + ADDEPEV2, cg17_chisq_design))
+r3 <- cbind(r3p1, r3p2)
+
+r4p1 <- cst_1(CHCCOPD1)
+r4p2 <- cst_4(svychisq(~dis + CHCCOPD1, cg17_chisq_design))
+r4 <- cbind(r4p1, r4p2)
+
+r5p1 <- cst_1(X_PHYS14D)
+r5p2 <- cst_4(svychisq(~dis + X_PHYS14D, cg17_chisq_design))
+r5 <- cbind(r5p1, r5p2)
+
+r6p1 <- cst_1(ARTHSOCL)
+r6p2 <- cst_4(svychisq(~dis + ARTHSOCL, cg17_chisq_design))
+r6 <- cbind(r6p1, r6p2)
+
+r7p1 <- cst_1(X_MENT14D)
+r7p2 <- cst_4(svychisq(~dis + X_MENT14D, cg17_chisq_design))
+r7 <- cbind(r7p1, r7p2)
+
+r8p1 <- cst_1(ASTHMA3)
+r8p2 <- cst_4(svychisq(~dis + ASTHMA3, cg17_chisq_design))
+r8 <- cbind(r8p1, r8p2)
+
+r9p1 <- cst_1(male)
+r9p2 <- cst_4(svychisq(~dis + male, cg17_chisq_design))
+r9 <- cbind(r9p1, r9p2)
+
+r10p1 <- cst_1(female)
+r10p2 <- cst_4(svychisq(~dis + female, cg17_chisq_design))
+r10 <- cbind(r10p1, r10p2)
+
+rbind(r1, r2, r3, r4, r5, r6, r7, r8, r9, r10)
+
+chisqtable <- rbind(r1, r2, r3, r4, r5, r6, r7, r8, r9, r10)
+chisqtable$health_var <- c("LMTJOIN3", "X_RFBMI5", "ADDEPEV2", "CHCCOPD1", "X_PHYS14D", "ARTHSOCL", "X_MENT14D", "ASTHMA3", "male", "female")
+chisqtable %>% select(health_var, "pop_prop" = proportion, "pop_se" = proportion_se, "dis_prop" = proportion.1, "dis_se" = proportion_se.1, "nodis_prop" = proportion.2, "nodis_se" = proportion_se.2, fstat, pvalue)  

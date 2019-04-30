@@ -16,8 +16,14 @@ llcp2017 <- read.csv("llcp2017.csv", header = TRUE)
 #e.g., _STATE becomes X_STATE
 #however, a bunch of data about the variables is lost when you convert your file to a csv
 
-#in order to prevent data loss, import your XPT file, then run the following code to manually put an X in front of _variables
+#to avoid data loss, you can manually put an X in front of each and every _variable
+#e.g., llcp2017$X_STATE <- llcpa2017$"_STATE"
+#this will add a new column called X_STATE to the end of the llcp2017 data frame which contains the contents of _STATE
+#but do you really want to do this one by one for all the 80+ _variables? No you don't!
 
+#in order to prevent data loss and avoid doing a bunch of extra work, import your XPT file, then run the following code 
+
+library(tidyverse)
 x_var17 <- select(llcp2017, starts_with("_"))
 colnames(x_var17) <- paste("X", colnames(x_var17), sep = "")
 llcp2017x <- cbind(llcp2017, x_var17)
@@ -41,5 +47,5 @@ which(llcp2017x$"_PSU" == llcp2017x$X_PSU)
 llcp2017x$"_PSU" != llcp2017x$X_PSU
 which(llcp2017x$"_PSU" != llcp2017x$X_PSU)
 
-#then you can clean up your data file by selecting the variables that you want to keep
+#then you can subset your data file by selecting the variables that you want to keep
 #e.g., llcp2017x %>% select(...)

@@ -1,0 +1,45 @@
+#R doesn't like variable names that start with non-letters
+#a lot of BRFSS variables start with an underscore, i.e., _
+#sometimes you can wrap the variable name in quotes to resolve R's "I don't like variables that don't start with letters" issue
+#e.g., llcp2017$"_STATE" will return the state column to you
+#however, some tidyverse functions will make it seem like wrapping the variable name in quotes will resolve R's issues, but it doesn't
+#e.g., llcp2017 %>% filter("X_STATE" == 6) returns you back an empty data frame
+
+#a quick fix to cleaning variable names that start with non-letters is to export that data file out as a csv and then back in
+
+library(rio)
+llcp2017 <- import("LLCP2017.XPT")
+export(llcp2017, "llcp2017.csv")
+llcp2017 <- read.csv("llcp2017.csv", header = TRUE)
+
+#I don't know how it works, but during the file conversion an X is put in front of all variable names that start with an _
+#e.g., _STATE becomes X_STATE
+#however, a bunch of data about the variables is lost when you convert your file to a csv
+
+#in order to prevent data loss, import your XPT file, then run the following code to manually put an X in front of _variables
+
+x_var17 <- select(llcp2017, starts_with("_"))
+colnames(x_var17) <- paste("X", colnames(x_var17), sep = "")
+llcp2017x <- cbind(llcp2017, x_var17)
+
+#that's it!!
+#you'll end up with duplicate columns, where each _variable will have a matching X_variable
+#you can confirm that the rows didn't get mixed up between your _variables and X_variables by checking on _PSU and X_PSU
+#_PSU is the primary sampling unit; it's basically the respondent id
+
+#this is a quick check of the first ten rows
+#make sure to set the variable class to integer because you can't really tell the numbers match in scientific notation
+llcp2017x[1:10, "_PSU"]
+as.integer(llcp2017x[1:10, "_PSU"])
+as.integer(llcp2017x[1:10, "X_PSU"])
+
+#this will tell you the _PSU and X_PSU that do match; it will be all of them
+llcp2017x$"_PSU" == llcp2017x$X_PSU
+which(llcp2017x$"_PSU" == llcp2017x$X_PSU)
+
+#this will tell you the _PSU and X_PSU that don't match; it will be none of them
+llcp2017x$"_PSU" != llcp2017x$X_PSU
+which(llcp2017x$"_PSU" != llcp2017x$X_PSU)
+
+#then you can clean up your data file by selecting the variables that you want to keep
+#e.g., llcp2017x %>% select(...)

@@ -1,0 +1,74 @@
+#ch16: https://youtu.be/OE67k8EvL00
+#subscribe: https://www.youtube.com/channel/UC1dgo0G1p2iOVD77nLQSqKQ/videos?view_as=subscriber
+
+library(tidyverse)
+library(survey)
+
+ca_girls17 <- read.csv("ca_girls17.csv", header = TRUE)
+
+cg17_contvar <- ca_girls17 %>% select(CHILDREN, X_BMI5, ALCDAY5, FRUIT2, EXEROFT1, SEX, INCOME2, EDUCA, X_AGEG5YR, X_PSU, X_STSTR, X_LLCPWT)
+
+cg17_contvar$X_BMI5 <- cg17_contvar$X_BMI5/100
+cg17_contvar$CHILDREN <- replace(x <- cg17_contvar$CHILDREN, x >= 88, 0)
+
+a <- cg17_contvar %>% filter(ALCDAY5 >= 101 & ALCDAY5 <= 107) %>% mutate(ALCDAY5 = (ALCDAY5 - 100)*4) 
+b <- cg17_contvar %>% filter(ALCDAY5 >= 201 & ALCDAY5 <= 230) %>% mutate(ALCDAY5 = ALCDAY5 - 200) 
+c <- cg17_contvar %>% filter(ALCDAY5 >= 777) %>% mutate(ALCDAY5 = 0) 
+d <- cg17_contvar %>% filter(is.na(ALCDAY5)) %>% mutate(ALCDAY5 = 0) 
+y <- rbind(a, b, c, d)
+z <- arrange(y, X_PSU)
+glimpse(z)
+tail(z$ALCDAY5)
+tail(cg17_contvar$ALCDAY5)
+head(z$ALCDAY5)
+head(cg17_contvar$ALCDAY5)
+
+zz <- cg17_contvar %>% mutate(
+ALCDAY5 = case_when(
+ALCDAY5 >= 101 & ALCDAY5 <= 107 ~ (ALCDAY5 - 100)*4,
+ALCDAY5 >= 201 & ALCDAY5 <= 230 ~ ALCDAY5 - 200,
+ALCDAY5 >= 777 ~ 0, 
+is.na(ALCDAY5) ~ 0,
+)
+) 
+cg17_contvar$ALCDAY5 <- zz$ALCDAY5
+
+zz1 <- cg17_contvar %>% mutate(
+FRUIT2 = case_when(
+FRUIT2 < 200 ~ (FRUIT2 - 100)*30, 
+FRUIT2 >= 201 & FRUIT2 <= 299 ~ (FRUIT2 - 200)*4, 
+FRUIT2 >= 301 & FRUIT2 <= 399 ~ FRUIT2-300, 
+FRUIT2 == 300 | FRUIT2 >= 555 ~ 0, 
+is.na(FRUIT2) ~ 0, 
+)
+)
+cg17_contvar$FRUIT2 <- zz1$FRUIT2
+
+zz2 <- cg17_contvar %>% mutate(
+EXEROFT1 = case_when(
+EXEROFT1 < 200 ~ (EXEROFT1 - 100)*4,
+EXEROFT1 < 300 ~ (EXEROFT1 - 200),
+EXEROFT1 >= 777 ~ 0,
+is.na(EXEROFT1) ~ 0 
+)
+)
+cg17_contvar$EXEROFT1 <- zz2$EXEROFT1
+
+#demographic variables
+cg17_contvar$SEX <- as.factor(recode(cg17_contvar$SEX, "1" = "M", "2" = "F"))
+cg17_contvar$INCOME2 <- as.factor(recode(cg17_contvar$INCOME2, "1" = "le10K", "2" = "10to15K", "3" = "15to20K", "4" = "20to25K", "5" = "25to35K", "6" = "35to50K", "7" = "50to75K", "8" = "gr75K", .default = "NA", missing = "NA"))
+cg17_contvar$EDUCA <- as.factor(recode(cg17_contvar$EDUCA, "1" = "K", "2" = "elem", "3" = "somehs", "4" = "hs_ged", "5" = "some_coll", "6" = "coll_grad", .default = "NA", .missing = "NA")) 
+cg17_contvar$X_AGEG5YR <- as.factor(recode(cg17_contvar$X_AGEG5YR, "1" = "18to24", "2" = "25to29", "3" = "30to34", "4" = "35to39", "5" = "40to44", "6" = "45to49", "7" = "50to54", "8" = "55to59", "9" = "60to64", "10" = "65to69", "11" = "70to74",  "12" = "75to79", "13" = "80+", .default =  "NA", .missing = "NA"))
+
+#setting reference values
+cg17_contvar$SEX <- relevel(cg17_contvar$SEX, ref = "F")
+cg17_contvar$INCOME2 <- relevel(cg17_contvar$INCOME2, ref = "gr75K")
+cg17_contvar$EDUCA <- relevel(cg17_contvar$EDUCA, ref = "coll_grad")
+cg17_contvar$X_AGEG5YR <- relevel(cg17_contvar$X_AGEG5YR, ref = "18to24")
+
+#survey design
+cg17_contvar_survey <- svydesign(data = cg17_contvar, id =  ~1, strata = ~X_STSTR, weights = ~X_LLCPWT)
+
+#t-test
+svyttest(X_BMI5 ~ SEX, cg17_contvar_survey)
+svyby(~X_BMI5, ~SEX, cg17_contvar_survey, svymean, vartype = c("se", "ci", "var"), na.rm = TRUE)

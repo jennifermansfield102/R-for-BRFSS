@@ -1,5 +1,5 @@
-#ch16: https://youtu.be/OE67k8EvL00
 #subscribe: https://www.youtube.com/channel/UC1dgo0G1p2iOVD77nLQSqKQ/videos?view_as=subscriber
+#ch16: https://youtu.be/OE67k8EvL00
 
 library(tidyverse)
 library(survey)

@@ -1,0 +1,121 @@
+#tutorial video coming soon!
+
+
+#cleaning unreadable variable names
+library(rio)
+library(tidyverse)
+
+llcp2015 <- import("LLCP2015.XPT")
+llcp2016 <- import("LLCP2016.XPT")
+llcp2017 <- import("LLCP2017.XPT")
+
+glimpse(llcp2015)
+glimpse(llcp2016)
+glimpse(llcp2017)
+
+llcp2017$_STATE
+llcp2017$"_STATE"
+llcp2017$FMONTH
+llcp2017$"FMONTH"
+
+# wrapping the variable name in "" doesn’t always fix variable name problems  
+state6 <- llcp2017 %>% filter(_STATE == 6)
+state6 <- llcp2017 %>% filter("_STATE" == 6)
+glimpse(state6)
+fmonth1 <- llcp2017 %>% filter(FMONTH == 1)
+glimpse(fmonth1)
+
+#rename variables
+x_var17 <- select(llcp2017, starts_with("_"))
+glimpse(x_var17)
+colnames(x_var17) <- paste("X", colnames(x_var17), sep = "")
+colnames(x_var17)
+
+llcp2017x <- cbind(llcp2017, x_var17)
+glimpse(llcp2017x)
+
+llcp2017x[1:10, "_PSU"]
+as.integer(llcp2017x[1:10, "_PSU"])
+as.integer(llcp2017x[1:10, "X_PSU"])
+llcp2017x$"_PSU" == llcp2017x$X_PSU
+which(llcp2017x$"_PSU" == llcp2017x$X_PSU)
+llcp2017x$"_PSU" != llcp2017x$X_PSU
+which(llcp2017x$"_PSU" != llcp2017x$X_PSU)
+
+#run the code over 2015 and 2016
+x_var15 <- select(llcp2015, starts_with("_"))
+colnames(x_var15) <- paste("X", colnames(x_var15), sep = "")
+llcp2015x <- cbind(llcp2015, x_var15)
+as.integer(llcp2015x[1:10, "_PSU"])
+as.integer(llcp2015x[1:10, "X_PSU"])
+
+x_var16 <- select(llcp2016, starts_with("_"))
+colnames(x_var16) <- paste("X", colnames(x_var16), sep = "")
+llcp2016x <- cbind(llcp2016, x_var16)
+as.integer(llcp2016x[1:10, "_PSU"])
+as.integer(llcp2016x[1:10, "X_PSU"])
+
+
+#analyzing multiple years of data and attaching identifying information files 
+#filter for X_STATE == 6
+ca2015 <- llcp2015x %>% filter(X_STATE == 6)
+ca2016 <- llcp2016x %>% filter(X_STATE == 6)
+ca2017 <- llcp2017x %>% filter(X_STATE == 6)
+
+#make fake identifying data sets, similar to those you might receive if you have a contract with your state department of health
+id2015 <- data.frame(SEQNO =ca2015$SEQNO, id1 = c(0), id2 = c(0))
+id2016 <- data.frame(SEQNO = ca2016$SEQNO, id1 = c(0), id2 = c(0))
+id2017 <- data.frame(SEQNO = ca2017$SEQNO, id1 = c(0), id2 = c(0))
+
+#attach id sets to data
+idca2015 <- merge(id2015, ca2015, by="SEQNO")
+idca2016 <- merge(id2016, ca2016, by="SEQNO")
+idca2017 <- merge(id2017, ca2017, by="SEQNO")
+
+#bind together 2015-2017
+llcp1617x <- rbind(idca2015, idca2016, idca2017) #won’t work
+cols151617 <- intersect(colnames(idca2015), colnames(idca2016), colnames(idca2017)) #won’t work
+
+cols1516 <- intersect(colnames(idca2015), colnames(idca2016))
+cols1516
+idca1516 <- rbind(idca2015[ , cols1516], idca2016[ , cols1516])
+glimpse(idca1516)
+
+cols151617 <- intersect(colnames(idca1516), colnames(idca2017))
+cols151617
+idca151617 <- rbind(idca1516[ , cols151617], idca2017[ , cols151617])
+glimpse(idca151617)
+ 
+#setting reference levels and reordering factor levels 
+#first let’s select a couple variables
+idca151617s <- idca151617 %>% select(X_PSU, X_LLCPWT, X_STSTR, SEX, EDUCA, EMPLOY1, INCOME2, X_RFBMI5, X_TOTINDA, id1, id2) 
+
+#clean the variables
+idca151617s$SEX <- as.factor(recode(idca151617s$SEX, "1" = "Male", "2" = "Female", .default = "NA", .missing = "NA"))
+idca151617s$EDUCA <- as.factor(recode(idca151617s$EDUCA, "1" = "K", "2" = "elem", "3" = "somehs", "4" = "hs_ged", "5" = "some_coll", "6" = "coll_grad", .default = "NA", .missing = "NA")) 
+idca151617s$EMPLOY1 <- as.factor(recode(idca151617s$EMPLOY1, "1" = "employed", "2" = "employed", .default =  "unemployed", .missing = "unemployed"))
+idca151617s$INCOME2 <- as.factor(recode(idca151617s$INCOME2, "1" = "le10K", "2" = "10to15K", "3" = "15to20K", "4" = "20to25K", "5" = "25to35K", "6" = "35to50K", "7" = "50to75K", "8" = "gr75K", .default = "NA", missing = "NA"))
+idca151617s$X_RFBMI5 <- as.factor(recode(idca151617s$X_RFBMI5, "2" = "1", .default = "0", .missing = "0")) 
+idca151617s$X_TOTINDA <- as.factor(recode(idca151617s$X_TOTINDA, "2" = "1", .default = "0", .missing = "0"))
+
+#reorder the levels
+levels(idca151617s$SEX)
+levels(idca151617s$SEX) <- c("Male", "Female", "NA")
+levels(idca151617s$SEX)
+
+levels(idca151617s$INCOME2)
+levels(idca151617s$INCOME2) <- c("le10K", "10to15K", "15to20K", "20to25K", "25to35K", "35to50K", "50to75K", "gr75K", "NA") 
+levels(idca151617s$INCOME2)
+
+#etc., reorder the levels however you like 
+
+#set the reference level
+idca151617s$X_RFMI5 <- relevel(idca151617s$X_RFBMI5, ref = "1")
+idca151617s$X_TOTINDA <- relevel(idca151617s$X_TOTINDA, ref = "1")
+idca151617s$SEX <- relevel(idca151617s$SEX, ref = "Female")
+idca151617s$EDUCA <- relevel(idca151617s$EDUCA, ref = "coll_grad")
+idca151617s$EMPLOY1 <- relevel(idca151617s$EMPLOY1, ref = "employed")
+idca151617s$INCOME2 <- relevel(idca151617s$INCOME2, ref = "gr75K")
+
+levels(idca151617s$INCOME2)
+#it depends what you are reordering the levels or setting a reference level for; setting the reference level puts that level first
